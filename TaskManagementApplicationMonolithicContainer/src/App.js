@@ -1,49 +1,67 @@
-import React, { useState, useEffect } from 'react';
-import logo from './logo.svg';
+import React, { useEffect, useMemo, useState } from 'react';
 import './App.css';
+import { useTasks } from './context/TaskContext';
+import AddTask from './components/AddTask';
+import Filters from './components/Filters';
+import TaskList from './components/TaskList';
 
 // PUBLIC_INTERFACE
-function App() {
+export default function App() {
+  /**
+   * Application root component: renders header, theme toggle,
+   * filter controls, add-task form, and the draggable TaskList.
+   */
   const [theme, setTheme] = useState('light');
+  const { state } = useTasks();
 
-  // Effect to apply theme to document element
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
   // PUBLIC_INTERFACE
   const toggleTheme = () => {
-    setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
+    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
   };
+
+  const tasksCount = state.tasks.length;
+  const doneCount = useMemo(
+    () => state.tasks.filter((t) => t.status === 'done').length,
+    [state.tasks]
+  );
 
   return (
     <div className="App">
       <header className="App-header">
-        <button 
-          className="theme-toggle" 
+        <button
+          className="theme-toggle"
           onClick={toggleTheme}
           aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+          data-testid="theme-toggle"
         >
           {theme === 'light' ? '🌙 Dark' : '☀️ Light'}
         </button>
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
+
+        <h1 className="title" data-testid="app-title">Task Management</h1>
+        <p className="subtitle">
+          Keep track of tasks with priorities, subtasks, recurrence, filtering, and drag-and-drop.
         </p>
-        <p>
-          Current theme: <strong>{theme}</strong>
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
+        <div className="stats" aria-live="polite">
+          <span>Total: {tasksCount}</span>
+          <span>Done: {doneCount}</span>
+        </div>
+
+        <div className="toolbar">
+          <Filters />
+        </div>
+
+        <div className="panel">
+          <AddTask />
+        </div>
+
+        <div className="panel">
+          <TaskList />
+        </div>
       </header>
     </div>
   );
 }
-
-export default App;
