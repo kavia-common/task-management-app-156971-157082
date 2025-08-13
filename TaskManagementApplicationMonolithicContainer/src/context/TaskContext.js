@@ -8,7 +8,7 @@ const initialState = {
   tasks: [],
   filters: {
     query: '',
-    status: 'all', // all|todo|in-progress|done
+    status: 'todo', // todo|inprogress|done
     priority: 'all', // all|low|medium|high
     sortBy: 'created-desc', // created-desc|created-asc|due-asc|due-desc|priority
   },
@@ -235,24 +235,25 @@ function filterTasks(tasks, filters) {
     const q = (filters.query || '').toLowerCase();
     const matchesQuery =
       !q || t.title.toLowerCase().includes(q) || t.description.toLowerCase().includes(q);
-    const matchesStatus =
-      filters.status === 'all' || (filters.status === 'todo' && t.status !== 'done')
-        ? filters.status === 'all' || (filters.status === 'todo' && t.status !== 'done')
-        : t.status === filters.status;
     const matchesPriority =
       filters.priority === 'all' || t.priority === filters.priority;
 
-    // refine matchesStatus for explicit states
-    if (filters.status === 'in-progress') {
-      return matchesQuery && matchesPriority && t.status === 'in-progress';
+    // Determine status matching based on allowed filter values: todo | inprogress | done
+    const fs = filters.status;
+    let matchesStatus = true;
+
+    if (fs === 'todo') {
+      matchesStatus = t.status === 'todo' || t.status === 'in-progress';
+    } else if (fs === 'inprogress' || fs === 'in-progress') { // support older persisted value
+      matchesStatus = t.status === 'in-progress';
+    } else if (fs === 'done') {
+      matchesStatus = t.status === 'done';
+    } else if (fs === 'all' || !fs) {
+      // backward compatibility: show everything if old 'all' is found
+      matchesStatus = true;
     }
-    if (filters.status === 'done') {
-      return matchesQuery && matchesPriority && t.status === 'done';
-    }
-    if (filters.status === 'todo') {
-      return matchesQuery && matchesPriority && (t.status === 'todo' || t.status === 'in-progress');
-    }
-    return matchesQuery && matchesPriority;
+
+    return matchesQuery && matchesPriority && matchesStatus;
   });
 }
 
@@ -267,7 +268,15 @@ export function TaskProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, {
     ...initialState,
     tasks: Array.isArray(persistedTasks) ? persistedTasks : [],
-    filters: persistedFilters || initialState.filters,
+    filters: persistedFilters
+      ? {
+          ...persistedFilters,
+          status:
+            persistedFilters.status === 'all'
+              ? 'todo'
+              : (persistedFilters.status === 'in-progress' ? 'inprogress' : persistedFilters.status),
+        }
+      : initialState.filters,
   });
 
   useEffect(() => {

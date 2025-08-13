@@ -22,9 +22,8 @@ export default function Filters() {
         onChange={(e) => setFilters({ status: e.target.value })}
         aria-label="Status filter"
       >
-        <option value="all">All</option>
         <option value="todo">Todo</option>
-        <option value="in-progress">In progress</option>
+        <option value="inprogress">In progress</option>
         <option value="done">Done</option>
       </select>
       <select
